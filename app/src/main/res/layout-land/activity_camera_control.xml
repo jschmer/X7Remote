@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="jschmer.x7remote.CameraControl">
+
+    <ImageView
+        android:id="@+id/camPreview"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:contentDescription="Camera preview"
+        app:layout_constraintBottom_toTopOf="@+id/layout_recording"
+        app:layout_constraintEnd_toStartOf="@+id/layout_actions"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@android:color/transparent" />
+
+    <ProgressBar
+        android:id="@+id/loaderPreview"
+        style="@style/Widget.AppCompat.ProgressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toBottomOf="@+id/camPreview"
+        app:layout_constraintEnd_toEndOf="@+id/camPreview"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/camPreview" />
+
+    <ProgressBar
+        android:id="@+id/loaderActions"
+        style="@style/Widget.AppCompat.ProgressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toBottomOf="@+id/layout_actions"
+        app:layout_constraintEnd_toEndOf="@+id/layout_actions"
+        app:layout_constraintStart_toStartOf="@+id/layout_actions"
+        app:layout_constraintTop_toTopOf="@+id/layout_actions" />
+
+    <LinearLayout
+        android:id="@+id/layout_actions"
+        android:layout_width="120dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/layout_camInfo">
+
+        <ImageButton
+            android:id="@+id/btn_videoCapture"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="onVideoCapture"
+            app:srcCompat="@drawable/ic_record_video_start" />
+
+        <ImageButton
+            android:id="@+id/btn_snapshot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="onImageCapture"
+            app:srcCompat="@drawable/ic_snapshot" />
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="onSettings"
+            app:srcCompat="@drawable/ic_settings" />
+
+        <ImageButton
+            android:id="@+id/btn_powerOff"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="onPowerOff"
+            app:srcCompat="@drawable/ic_power_off" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout_recording"
+        android:layout_width="wrap_content"
+        android:layout_height="22dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="8dp"
+        android:orientation="horizontal"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:id="@+id/img_recording"
+            android:layout_width="22dp"
+            android:layout_height="20dp"
+            android:layout_marginBottom="196dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:contentDescription="Recording indicator"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toTopOf="@+id/layout_actions"
+            app:layout_constraintEnd_toStartOf="@+id/txt_recordTime"
+            app:srcCompat="@drawable/ic_recording" />
+
+        <TextView
+            android:id="@+id/txt_recordingWarning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/image_preview_may_not_work_correctly_during_recording" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout_camInfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:visibility="invisible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/img_sd_card"
+            android:layout_width="20dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="SD card icon"
+            android:scaleType="centerInside"
+            app:srcCompat="@drawable/ic_sd_card"
+            tools:layout_editor_absoluteY="32dp" />
+
+        <TextView
+            android:id="@+id/txt_sdCardCapactiy"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginLeft="4dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical" />
+
+        <ImageView
+            android:id="@+id/img_battery"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginLeft="10dp"
+            android:layout_weight="1"
+            android:contentDescription="Battery level icon"
+            app:srcCompat="@drawable/ic_battery_4_black_24dp" />
+    </LinearLayout>
+
+</android.support.constraint.ConstraintLayout>

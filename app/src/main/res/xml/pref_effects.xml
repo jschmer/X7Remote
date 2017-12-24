@@ -1,0 +1,27 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreference
+        android:key="@string/pref_effects_timestap_key"
+        android:title="@string/pref_title_effects_timestamp" />
+
+    <SwitchPreference
+        android:key="@string/pref_effects_aqua_mode_key"
+        android:title="@string/pref_title_effects_aqua_mode" />
+
+    <ListPreference
+        android:key="@string/pref_effects_fov_key"
+        android:entries="@array/pref_effects_fov_titles"
+        android:entryValues="@array/pref_effects_fov_values"
+        android:negativeButtonText="@null"
+        android:positiveButtonText="@null"
+        android:title="@string/pref_title_effects_fov" />
+
+    <ListPreference
+        android:key="@string/pref_effects_ae_metering_key"
+        android:entries="@array/pref_effects_ae_metering_titles"
+        android:entryValues="@array/pref_effects_ae_metering_values"
+        android:negativeButtonText="@null"
+        android:positiveButtonText="@null"
+        android:title="@string/pref_title_effects_ae_metering" />
+
+</PreferenceScreen>
