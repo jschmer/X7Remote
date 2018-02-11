@@ -21,6 +21,21 @@
         app:layout_constraintTop_toBottomOf="@+id/layout_camInfo"
         app:srcCompat="@android:color/transparent" />
 
+    <TextView
+        android:id="@+id/txt_previewNotAvailable"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="Live preview is not supported with this mode"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/layout_recording"
+        app:layout_constraintEnd_toEndOf="@+id/camPreview"
+        app:layout_constraintStart_toStartOf="@+id/camPreview"
+        app:layout_constraintTop_toTopOf="@+id/camPreview" />
+
     <ProgressBar
         android:id="@+id/loaderPreview"
         style="@style/Widget.AppCompat.ProgressBar"

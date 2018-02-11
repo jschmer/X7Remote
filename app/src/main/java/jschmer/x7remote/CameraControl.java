@@ -159,6 +159,17 @@ public class CameraControl extends AppCompatActivity {
                 return;
             }
 
+            if (!x7session.isPreviewSupported()) {
+                runOnUiThread(
+                        () -> {
+                            ProgressBar spinner = findViewById(R.id.loaderPreview);
+                            spinner.setVisibility(View.GONE);
+
+                            findViewById(R.id.txt_previewNotAvailable).setVisibility(View.VISIBLE);
+                        }
+                );
+            }
+
             updateButtonUI(x7session.isRecording());
 
             x7session.addListener(new X7RemoteSessionListener() {
@@ -215,8 +226,8 @@ public class CameraControl extends AppCompatActivity {
                 public void newCamPreviewImageAvailable(Bitmap bmp) {
                     runOnUiThread(
                             () -> {
-                                ProgressBar spinner = findViewById(R.id.loaderPreview);
-                                spinner.setVisibility(View.GONE);
+                                findViewById(R.id.loaderPreview).setVisibility(View.GONE);
+                                findViewById(R.id.txt_previewNotAvailable).setVisibility(View.GONE);
 
                                 ImageView imageView = findViewById(R.id.camPreview);
                                 imageView.setImageBitmap(bmp);

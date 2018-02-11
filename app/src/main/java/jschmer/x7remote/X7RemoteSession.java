@@ -13,6 +13,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -90,6 +91,7 @@ public class X7RemoteSession implements AutoCloseable {
     private BufferedWriter sock_out = null;
     private int SessionID = 0;
     private boolean recording = false;
+    private boolean previewSupported = false;
 
     private Timer periodicTimer = new Timer();
     private Timer previewImageTimer = new Timer();
@@ -120,10 +122,16 @@ public class X7RemoteSession implements AutoCloseable {
         initSession(sharedPrefs, res);
     }
 
-    boolean canChangeSettings() { return !isRecording(); }
+    boolean canChangeSettings() {
+        return !isRecording();
+    }
 
     boolean isRecording() {
         return recording;
+    }
+
+    boolean isPreviewSupported() {
+        return previewSupported;
     }
 
     @Override
@@ -471,7 +479,14 @@ public class X7RemoteSession implements AutoCloseable {
         fireStateChanged(NetworkInfo.State.CONNECTED, "");
     }
 
-    private boolean send_dual_streams_config(boolean firstTime) throws SendMessageException, JSONException {
+    enum StreamConfigResult
+    {
+        AlreadyOn,
+        Activated,
+        Error
+    }
+
+    private StreamConfigResult send_dual_streams_config_first() throws SendMessageException, JSONException {
         sendCommandWithAssert(CameraCommand.Setting_Change_Start, 0);
 
         String payload = String.format(
@@ -480,7 +495,30 @@ public class X7RemoteSession implements AutoCloseable {
                 SessionID
         );
         JSONObject answer = sendMessage(payload);
-        if (answer.getInt("rval") == 0 && !(firstTime && answer.has("settable"))) {
+
+        if (answer.getInt("rval") == 0 && answer.has("settable") && answer.getString("settable").contains("streaming;off")) {
+            sendCommandWithAssert(CameraCommand.Setting_Change_Stop, 0);
+            return StreamConfigResult.AlreadyOn;
+        }
+        else if (answer.getInt("rval") == 0 && !answer.has("settable")) {
+            sendCommandWithAssert(CameraCommand.Setting_Change_Stop, 0);
+            return StreamConfigResult.Activated;
+        }
+        else {
+            return StreamConfigResult.Error;
+        }
+    }
+
+    private boolean send_dual_streams_config() throws SendMessageException, JSONException {
+        sendCommandWithAssert(CameraCommand.Setting_Change_Start, 0);
+
+        String payload = String.format(
+                Locale.US,
+                "{\"token\":%d,\"msg_id\":6,\"type\":\"dual streams\",\"param\":\"on\",\"param_size\":2}",
+                SessionID
+        );
+        JSONObject answer = sendMessage(payload);
+        if (answer.getInt("rval") == 0) {
             sendCommandWithAssert(CameraCommand.Setting_Change_Stop, 0);
             return true;
         }
@@ -502,15 +540,24 @@ public class X7RemoteSession implements AutoCloseable {
     }
 
     private void enableCamPreview() throws SendMessageException, JSONException {
-        if (send_dual_streams_config(true)) {
-            send_stream_type_config();
-            send_dual_streams_config(false);
+        switch (send_dual_streams_config_first()) {
+            case Activated:
+                send_stream_type_config();
+                send_dual_streams_config();
+            case AlreadyOn:
+                previewSupported = true;
+                break;
+            default:
+                previewSupported = false;
         }
 
         setupPreviewImageTimer();
     }
 
     private byte[] getPreviewImage() throws IOException {
+        if (!previewSupported)
+            return new byte[]{};
+
         try {
             return httpGET(String.format("http://%s/mjpeg/amba.jpg", CamAddress));
         } catch (FileNotFoundException | SocketTimeoutException e) {
