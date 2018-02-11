@@ -8,12 +8,8 @@ import android.net.NetworkInfo;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Pair;
-import android.view.View;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,7 +26,10 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -66,6 +65,11 @@ enum BatteryLevel {
     }
 }
 
+enum ReplyMode {
+    Ignore,
+    Read
+}
+
 interface X7RemoteSessionListener
 {
     void stateChanged(NetworkInfo.State newstate, String reason);
@@ -79,6 +83,11 @@ public class X7RemoteSession implements AutoCloseable {
     private static final String LOGTAG = X7RemoteSession.class.getSimpleName();
     // camera config key -> (sharedPref config key, is boolean config)
     private static Map<String, Pair<String, Boolean>> camConfigKeyToSharedPrefKeyMap = null;
+
+    // list of (property, value) messages to skip
+    private static final List<Pair<String, String>> tcpRepliesToSkip = new ArrayList<Pair<String, String>>() {{
+        add(Pair.create("msg_id", "16777217"));
+    }};
 
     static final String CamAddress = "192.168.42.1";
     static final int CamPort = 7878;
@@ -149,13 +158,13 @@ public class X7RemoteSession implements AutoCloseable {
     void startVideoCapture() throws SendMessageException {
         sendCommandWithAssert(CameraCommand.Video_Capture_Start, 0);
         recording = true;
-        fireRecordingStatusChanged(recording);
+        fireRecordingStatusChanged(true);
     }
 
     void stopVideoCapture() throws SendMessageException {
         sendCommandWithAssert(CameraCommand.Video_Capture_Stop, 0);
         recording = false;
-        fireRecordingStatusChanged(recording);
+        fireRecordingStatusChanged(false);
     }
 
     boolean canSnapshot() { return !isRecording(); }
@@ -164,7 +173,7 @@ public class X7RemoteSession implements AutoCloseable {
     }
 
     void powerOff() throws SendMessageException {
-        sendCommand(CameraCommand.Power_OFF);
+        sendCommand(CameraCommand.Power_OFF, ReplyMode.Ignore);
         shutdown();
     }
     //endregion
@@ -509,7 +518,7 @@ public class X7RemoteSession implements AutoCloseable {
         }
     }
 
-    private boolean send_dual_streams_config() throws SendMessageException, JSONException {
+    private void send_dual_streams_config() throws SendMessageException, JSONException {
         sendCommandWithAssert(CameraCommand.Setting_Change_Start, 0);
 
         String payload = String.format(
@@ -520,9 +529,7 @@ public class X7RemoteSession implements AutoCloseable {
         JSONObject answer = sendMessage(payload);
         if (answer.getInt("rval") == 0) {
             sendCommandWithAssert(CameraCommand.Setting_Change_Stop, 0);
-            return true;
         }
-        return false;
     }
 
     private void send_stream_type_config() throws SendMessageException, JSONException {
@@ -596,8 +603,37 @@ public class X7RemoteSession implements AutoCloseable {
         }, 0, interval);
     }
 
-    @NonNull
+    private boolean shouldSkipReply(JSONObject reply) throws JSONException {
+        for ( Pair<String, String> skipEntry : tcpRepliesToSkip ) {
+            String key = skipEntry.first;
+            String val = skipEntry.second;
+
+            if (reply.has(key) && reply.get(key).toString().equals(val))
+                return true;
+        }
+        return false;
+    }
+
+    private JSONObject getNextReply(List<String> replies) throws JSONException {
+        for (Iterator<String> iterator = replies.iterator(); iterator.hasNext();) {
+            String reply = iterator.next();
+            JSONObject jsonReply = new JSONObject(reply);
+
+            if (shouldSkipReply(jsonReply)) {
+                iterator.remove();
+            } else {
+                return jsonReply;
+            }
+        }
+
+        return null;
+    }
+
     synchronized private JSONObject sendMessage(String payload) throws SendMessageException {
+        return sendMessage(payload, ReplyMode.Read);
+    }
+
+    synchronized private JSONObject sendMessage(String payload, ReplyMode replyMode) throws SendMessageException {
         if (sock == null)
             throw new SendMessageException("Socket does not exist");
 
@@ -606,13 +642,32 @@ public class X7RemoteSession implements AutoCloseable {
             sock_out.write(payload);
             sock_out.flush();
 
-            char[] buf = new char[65556];
-            int bytes_read = sock_in.read(buf);
-            String answer = String.valueOf(buf, 0, bytes_read-1);
+            while (replyMode == ReplyMode.Read) {
+                char[] buf = new char[65556];
+                int bytes_read = sock_in.read(buf);
+                String replyStr = String.valueOf(buf, 0, bytes_read-1);
 
-            Log.d(LOGTAG + LOGTAGNETWORK, String.format("TCP RP: %s", answer));
+                Log.d(LOGTAG + LOGTAGNETWORK, String.format("TCP RP: %s", replyStr));
 
-            return new JSONObject(answer);
+                // reply can have multiple answers,
+                // first remove any answers to skip and then check if there is on
+                // valid answer left. If there is none left, try read from the socket again
+
+                List<String> replies = new ArrayList<>(Arrays.asList(replyStr.split("\0")));
+
+                JSONObject nextReply = getNextReply(replies);
+                if (nextReply == null) {
+                    // everything skipped, read from socket again
+                    continue;
+                }
+
+                if (replies.size() > 1)
+                    throw new SendMessageException("Too much replies left over!");
+
+                return nextReply;
+            }
+
+            return null;
         } catch (IOException | JSONException e) {
             Log.e(LOGTAG + LOGTAGNETWORK, e.getMessage());
             throw new SendMessageException(e.getMessage());
@@ -642,14 +697,18 @@ public class X7RemoteSession implements AutoCloseable {
         return sendMessageWithAssert(payload, expectedReturnValue);
     }
 
-    private void sendCommand(CameraCommand command) throws SendMessageException {
+    private void sendCommand(CameraCommand command, ReplyMode replyMode) throws SendMessageException {
         String payload = String.format(
                 Locale.US,
                 "{\"token\":%d,\"msg_id\":%d,\"param_size\":0}",
                 SessionID,
                 command.getId()
         );
-        sendMessage(payload);
+        sendMessage(payload, replyMode);
+    }
+
+    private void sendCommand(CameraCommand command) throws SendMessageException {
+        sendCommand(command, ReplyMode.Read);
     }
 
     private String getSetting(String key) throws SendMessageException {
