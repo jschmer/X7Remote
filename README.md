@@ -24,12 +24,6 @@ Settings
 
 ![Video settings](/docs/screenshot_remote_cam_ui_settings_video.png) ![System settings](/docs/screenshot_remote_cam_ui_settings_settings.png)
 
-Disclaimer
-----------
-This is my first android application project, including my first real project with Java.
-The code is probably messy and doesn't follow any best practices found in the android dev world.
-Pull request with improvements are welcome!
-
 Install instructions
 --------------------
 Clone this repository, download and install Android Studio, open this project and install all necessary packages it complains about.
