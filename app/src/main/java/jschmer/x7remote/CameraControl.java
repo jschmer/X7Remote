@@ -18,6 +18,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 public class CameraControl extends AppCompatActivity {
@@ -238,14 +239,60 @@ public class CameraControl extends AppCompatActivity {
 
             Log.i(LOGTAG, "Connecting to camera... DONE!");
 
-            // connection camera done, show user interaction controls and hide corresponding loader
+            // setup photo and video mode UI
             runOnUiThread(
                     () -> {
-                        findViewById(R.id.loaderActions).setVisibility(View.INVISIBLE);
-                        findViewById(R.id.layout_actions).setVisibility(View.VISIBLE);
+                        String videoMode = getConfigValueFromTitleValueSetting(
+                                R.string.pref_video_mode_key,
+                                R.array.pref_video_mode_titles,
+                                R.array.pref_video_mode_values
+                        );
+                        boolean NTSCmode = SettingsActivity.VideoPreferenceFragment.isNtscActive(getResources(), PreferenceManager.getDefaultSharedPreferences(this));
+                        String videoResolution = getConfigValueFromTitleValueSetting(
+                                R.string.pref_video_resolution_key,
+                                NTSCmode ? R.array.pref_video_resolution_titles_ntsc : R.array.pref_video_resolution_titles_pal,
+                                R.array.pref_video_resolution_values
+                        );
+
+                        TextView videoModeTxt = findViewById(R.id.txt_videoMode);
+                        videoModeTxt.setText(String.format("%s (%s)", videoMode, videoResolution));
+
+                        String photoMode = getConfigValueFromTitleValueSetting(
+                                R.string.pref_photo_mode_key,
+                                R.array.pref_photo_mode_titles,
+                                R.array.pref_photo_mode_values
+                        );
+                        String photoResolution = getConfigValueFromTitleValueSetting(
+                                R.string.pref_photo_resolution_key,
+                                R.array.pref_photo_resolution_titles,
+                                R.array.pref_photo_resolution_values
+                        );
+
+                        TextView photoModeTxt = findViewById(R.id.txt_photoMode);
+                        photoModeTxt.setText(String.format("%s (%s)", photoMode, photoResolution));
+
+                        findViewById(R.id.layout_mode_info).setVisibility(View.VISIBLE);
                     }
             );
+
+            // connection camera done, show user interaction controls and hide corresponding loader
+            runOnUiThread(
+                () -> {
+                    findViewById(R.id.loaderActions).setVisibility(View.INVISIBLE);
+                    findViewById(R.id.layout_actions).setVisibility(View.VISIBLE);
+                }
+            );
         });
+    }
+
+    private String getConfigValueFromTitleValueSetting(int settingKey, int titlesKey, int valuesKey) {
+        String keyStr = getResources().getString(settingKey);
+        String[] titles = getResources().getStringArray(titlesKey);
+        String[] values = getResources().getStringArray(valuesKey);
+
+        String videoModeVal = PreferenceManager.getDefaultSharedPreferences(this).getString(keyStr, "N/A");
+        int index = Arrays.asList(values).indexOf(videoModeVal);
+        return titles[index];
     }
 
     private void disconnectFromCam() {

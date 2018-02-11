@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.DialogPreference;
@@ -197,14 +198,14 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class VideoPreferenceFragment extends PreferenceFragment {
-        private boolean isNtscActive()
+        public static boolean isNtscActive(Resources res, SharedPreferences prefs)
         {
-            String tv_mode_key_name = getString(R.string.pref_system_tv_mode_key);
-            int tv_mode = Integer.parseInt(getPreferenceManager().getSharedPreferences().getString(tv_mode_key_name, "0"));
+            String tv_mode_key_name = res.getString(R.string.pref_system_tv_mode_key);
+            int tv_mode = Integer.parseInt(prefs.getString(tv_mode_key_name, "0"));
 
-            List tv_mode_title_list = Arrays.asList(getResources().getStringArray(R.array.pref_system_tv_mode_titles));
+            List tv_mode_title_list = Arrays.asList(res.getStringArray(R.array.pref_system_tv_mode_titles));
             int ntsc_index = tv_mode_title_list.indexOf("NTSC");
-            int[] tv_mode_value_list = getResources().getIntArray(R.array.pref_system_tv_mode_values);
+            int[] tv_mode_value_list = res.getIntArray(R.array.pref_system_tv_mode_values);
             int ntsc_mode_value = tv_mode_value_list[ntsc_index];
 
             return tv_mode == ntsc_mode_value;
@@ -217,7 +218,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             setHasOptionsMenu(true);
 
             final ListPreference resolutionPref = (ListPreference) findPreference("video_resolution");
-            if (isNtscActive())
+            if (isNtscActive(getResources(), getPreferenceManager().getSharedPreferences()))
                 resolutionPref.setEntries(R.array.pref_video_resolution_titles_ntsc);
             else
                 resolutionPref.setEntries(R.array.pref_video_resolution_titles_pal);
